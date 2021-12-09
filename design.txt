@@ -1,0 +1,48 @@
+Software main purpouse:
+-multithread scrap data (match statistics [and players statistics if they are avaliable], also players data (birth date, height, experience))
+from https://www.flashscore.com/basketball/
+
+Required imports:
+-selenium
+-bs4
+-pandas
+-numpy
+-threading
+
+Expected Input (nescessary):
+    -League name
+    -date period
+
+Expected Input (optional):
+    -no. of threads (default value set to optimal during tests)
+
+Workflow:
+    1.  Check if choosen League name is in avaliable League list, if so, go on. If not return BadEntry Exception with information of avaliable Leagues
+    2.  Scrap match list with internal flashscore id reference and hyperlinks, in selected data period. Write that data and compare if match with that
+        flashscore id exist in DB, for further scraping use only that matches that not in DB. (NEDED MODULE TO SCRAP TEAM INFO)
+    3.  Create FIFO stack with hyperlinks (locked due to multithreding), match full date (date+time) and flashscore_match_id
+    4.  Each thread:
+            -popup match from stack and scrap data (player_statistic, match_statistic) to pandas DF
+            -based on flashscore_player_id for each player check if that player exist in DB, if not add that player to FIFO stack with players to scrap
+
+
+
+DB_Creation:
+
+DB name: Basketball_data
+
+Tables:
+-Matches (id (PK), flashscore_match_id, league_ticker(FK->Teams_list), date, time, home_team_ticker(FK->Teams_list), away_team_ticker(FK->Teams_list), hyperlink,
+            ht_q1_pts, at_q1_pts, ht_q2_pts, at_q2_pts, ht_q3_pts, at_Q3_pts, ht_q4_pts, at_q4_pts, ht_q5_pts, at_q5_pts,
+            ht_odds_start, at_odds_start, ht_odds_end, at_odds_end)
+
+-Players_statistic (id (PK), id_matches(FK->Matches), flashscore_match_id(FK->Matches), player_id(FK->Players_info), name, team_ticker, pts, reb, ast, min, fgm, fga, 2pm, 2pa, 3pm, 3pa, ftm, fta, +/-,
+                    or, dr, pf, st, to, bs, ba, tfs)
+
+-Players_info(id (PK), flashscore_player_id, full_name, birth_date, height, hyperlink)
+
+-Players_carrer(id (PK), player_id(FK->Players_info), flashscore_player_id(FK->Players_info), season, team, league)
+
+-Teams_list(id (PK), league, league_ticker, team_name, team_ticker)
+
+(Using both flashscore id and internal to keep data consistency)
