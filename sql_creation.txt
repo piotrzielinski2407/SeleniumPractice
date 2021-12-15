@@ -88,3 +88,4 @@ CRETE TABLE player_carrer(
     team_ticker varchar(5) NOT NULL REFERENCES teams(team_ticker)
     league_ticker varchar(5) NOT NULL REFERENCES leagues(league_ticker)
 )
+

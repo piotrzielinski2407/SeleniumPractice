@@ -10,15 +10,15 @@ Required imports:
 -threading
 
 Expected Input (nescessary):
-    -League name
-    -date period
+    -League name (ticker)
+    -date period #date will be considered as both sides enclosed sey
 
 Expected Input (optional):
     -no. of threads (default value set to optimal during tests)
 
-Workflow:
-    1.  Check if choosen League name is in avaliable Leagues, if so, go on. If not return BadEntry Exception with information of avaliable Leagues 
-    2.  Scrap match list with internal flashscore id reference and hyperlinks, in selected data period. Write that data and compare if match with that
+Basics:
+    1.  Check if choosen League name is in avaliable Leagues, if so, download hyperlink. If not return BadEntry Exception with information of avaliable Leagues 
+    2.  With hyperlink from above, scrap match list with internal flashscore id reference and hyperlinks, in selected data period. Write that data and compare if match with that
         flashscore id exist in DB, for further scraping use only that matches that not in DB.
     3.  Create FIFO stack with hyperlinks (with locking due to multithreding), match full date (date+time) and flashscore_match_id
     4.  Each thread:
@@ -27,13 +27,57 @@ Workflow:
                 b) match_statistic
                 c) player_statistic
             -write data to pandas DF
-            -based on flashscore_player_id for each player check if that player exist in DB, if not add that player to FIFO stack with players to scrap (common to all threads)
+            -based on flashscore_player_id for each player check (after all threads finished) if that player exist in DB, if not add that player to FIFO stack with players to scrap (common to all threads)
                 if that player isn't already in that stack
     5. Every scraping action should be loged
     6. Script rather should handle errors and skip some matches (with clear summary in log) and keep scraping.
     7. At the end matches that cause error should be try once again.
 
+Architecture:
+-DB_operations below is description of methods like they were function but this should be
+                a class to avoid code duplications
+    METHODS:
+    -return row if arg is in arg2(column_name) from arg3(table name)[column name should be parameter and define as constance]
+    if value is not found return None
+    -return value from colum arg if arg1 is in arg3(column_name) from arg4(table name)[column name should be parameter and define as constance]
+    if value is not found return None
+    -return whole column arg(column name) from arg2 (table name)
+    -return table arg(table_name)
 
+
+-class FindDiv source_html, div_to_find in costructor
+        methods:
+        -return_selected(divs_name [list]) #will return a pd datframe consist only selected divs inside selected div from constructor
+    
+-class PageSource hyperlink, cookie_button_id_name in constructor
+    methods:
+    return_driver() #will return driver after it was fully loaded (js script document is ready) and after click on cookie button
+    return_page_content() #will return page content after it was fully loaded (js script document is ready) and after click on cookie button
+
+-match_list_creation
+    -based on year range create hyperlinks list
+    -engage match list creation for each year in different thread
+    class MatchList(FindDiv): hyperlink list in costructor, kwargs begin_data_limit, end_data_limit (both false on deafult)
+        methods:
+        - scrap() #start scraping data
+        - return_data() #return scrapped data
+        - return_logs() #return logs
+
+-match_info_creation
+    class MatchInfo(FindDiv) hyperlink list in constructor
+    methods:
+    -scrap()
+    -return_teams_data()
+    -return_match_data()
+    -return_players_statistic_data()
+    -return_logs()
+
+-players_info
+    class PlayersInfo(FindDiv) hyperlink list to player in constructor
+    methods:
+    -scrap() #should scrap player info player players_carrer
+    -return_player_info()
+    -return_player_carrer()
 
 
 DB_Creation:
