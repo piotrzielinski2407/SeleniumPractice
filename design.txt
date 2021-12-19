@@ -44,12 +44,14 @@ Architecture:
     -return whole column arg(column name) from arg2 (table name)
     -return table arg(table_name)
 
-
--class FindDiv source_html, div_to_find in costructor
-        methods:
-        -return_selected(divs_name [list]) #will return a pd datframe consist only selected divs inside selected div from constructor
-    
--class PageSource hyperlink, cookie_button_id_name in constructor
+-class Logger
+    #there should be only one logger so this is Signleton design pattern, should be multithread proof
+-cache:
+    there should be a cache to preseve team tickers, cache should be multithread proof
+-class PreparePageSource hyperlink in constructor
+    class variables:
+    cookie_button_id_name
+    max_attempts
     methods:
     return_driver() #will return driver after it was fully loaded (js script document is ready) and after click on cookie button
     return_page_content() #will return page content after it was fully loaded (js script document is ready) and after click on cookie button
