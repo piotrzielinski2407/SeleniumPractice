@@ -69,6 +69,7 @@ instance/
 .scrapy
 testy.ipynb
 testy.py
+TODO.txt
 
 # Sphinx documentation
 docs/_build/

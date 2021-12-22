@@ -6,7 +6,7 @@ class CacheHistory(metaclass = Singleton):
     def __init__(self):
         pass
 
-    def team_tciker_update(self, league):
+    def team_ticker_update(self, league):
         pass#here should be method to download all known tickers for team in league
 
 cache_history = CacheHistory()

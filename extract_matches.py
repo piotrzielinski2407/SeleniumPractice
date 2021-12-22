@@ -1,24 +1,38 @@
 from webpageprep import *
+from logger import logger_object
 
 class ExtractMatchIds(PreparePageSource):
     '''
     Class to extract match id's based on provided link to archive season.
     '''
-
-    __external_container = 'sportName basketball'
-    
     __match_containers_name = ['event__match event__match--static event__match--twoLine',
                               'event__match event__match--static event__match--last event__match--twoLine']
     __general_container_list = 'container'
     __show_more_matches_text = 'Show more matches'
     __id_prefix = 'g_3_'
     
-    def __init__(self, hyperlink, *args, **kwargs):
-        super().__init__(hyperlink, *args, **kwargs)
+    def __init__(self, hyperlinks = None, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         self.__match_id = []
-        self.__load_all_matches()
+        self.hyperlink = None
+        self.hyperlinks = hyperlinks    
 
+    @property
+    def hyperlinks(self):
+        return self._hyperlinks
+
+    @hyperlinks.setter
+    def hyperlinks(self, new_value):
+        self._hyperlinks = new_value
+        if new_value:
+            self.__scrap_all_hyperlinks()
     
+    def __scrap_all_hyperlinks(self):
+        for hyperlink in self.hyperlinks:
+            self.hyperlink = hyperlink
+            self.__load_all_matches()
+            self.get_matches_id()
+
     def __load_all_matches(self):
         #some exceptions may be raised here, due to time nescessary for page to load all elements
         xpath_command = "//*[text() = '" + str(ExtractMatchIds.__show_more_matches_text) + "']"
@@ -26,19 +40,19 @@ class ExtractMatchIds(PreparePageSource):
         
         while True:
             self.wait_for_page_to_load()
-            self.driver.implicitly_wait(10)
+            self.driver.implicitly_wait(self.page_load_treshold)
             for element in elements:
                 try:
                     self.driver.execute_script("arguments[0].click()", element)
                 except Exception as e:
-                    self.log(f'Exception occured: {e}', 'WARNING')
+                    logger_object.log(f'Exception occured: {e}', 'WARNING')
                     pass
             try:
                 if not self.__is_string_on_site():
-                    self.log('All matches loaded', 'INFO')
+                    logger_object.log('All matches loaded', 'INFO')
                     break
             except Exception as e:
-                self.log(f'Exception occured: {e}. Script suspended and wait for all elements load',
+                logger_object.log(f'Exception occured: {e}. Script suspended and wait for all elements load',
                          'WARNING')
                 time.sleep(0.25)
     
