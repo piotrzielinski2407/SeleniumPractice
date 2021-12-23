@@ -1,8 +1,6 @@
 import psycopg2
 from settings import load_DB_config
 from logger import logger_object
-#from aditional_functions import set_directory
-#set_directory()
 config = load_DB_config()
 
 class DB():
@@ -22,6 +20,17 @@ class DB():
             logger_object.log(f'Exception occure during estabilishing connection with DB: {e}', 'ERROR')
         self.active_table = None
 
+    def querry(self, sql, return_mode = None):
+        '''
+        Method for user to create custom querry to db
+        '''
+        try:
+            self.cur.execute(sql)
+            #return mode missing-should be codded
+            logger_object.log('Custom querry executed properly', 'INFO')
+        except Exception as e:
+            logger_object.log(f'Exception {e} occured during custom querry execution', 'ERROR')
+
     def create_table(self, table_name, column_parameters = None, table_constraints = None):
         '''
         Method that will create table with columns in it only if column_parameters is provided, otherwise only empty table is created.
@@ -33,6 +42,7 @@ class DB():
             self.cur.execute(sql)
             self.active_table = table_name
             logger_object.log(f'Table "{table_name}" created', 'DEBUG')
+            #still column creation should be codded
             return True
         logger_object.log(f'Table with that name:"{table_name}" already exist or no table name provided', 'WARNING')
         return False
@@ -48,7 +58,7 @@ class DB():
             table_name = result
         else:
             return False
-            
+
         if not self.is_table_exist(new_table_name):#chec if new table name is availible
             sql = f"ALTER TABLE {table_name} RENAME TO {new_table_name};"
             self.cur.execute(sql)
@@ -86,7 +96,25 @@ class DB():
             return True
         logger_object.log('Column parametrs should be type of list', 'ERROR')
         return False        
-                
+    
+    def drop_table(self, table_name = None):
+        '''
+        Method that will drop table table_name if no table_name is provided, active table is taken into consideration
+        '''
+        result = self.__table_name_set(table_name)#checking if active or provided table exist
+        if result is not False:
+            table_name = result
+        else:
+            return False
+        sql = f'DROP TABLE {table_name}'
+        try:
+            self.cur.execute(sql)
+            logger_object.log(f'Table {table_name} sucefully deleted', 'INFO')
+            return True
+        except Exception as e:
+            logger_object.log(f'Exception: {e} occured durign deleting table: {table_name}', 'INFO')
+            return False
+
 
     def __sql_command_add_column(self, columns_parameters, table_name):
         sql = f'ALTER TABLE {table_name}'
@@ -98,7 +126,6 @@ class DB():
         except Exception as e:
             logger_object.log(f'Exception: {e} occured during creating sql command ', 'ERROR')
             return False
-
 
     def __table_name_set(self, table_name):
         '''
@@ -116,7 +143,6 @@ class DB():
 
     def activate_table(self, table_name):
         pass
-
 
     def is_table_exist(self, table_name=None):
         '''
