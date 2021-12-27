@@ -1,7 +1,7 @@
 CREATE TABLE leagues(
     id SERIAL PRIMARY KEY,
     league_ticker varchar(5) UNIQUE NOT NULL,
-    league_full_name varchar(50) NOT NULL,
+    league_full_name varchar(50) UNIQUE NOT NULL,
     league_hyperlink varchar(100) NOT NULL
 )
 
@@ -32,10 +32,10 @@ CREATE TABLE matches (
     at_q4_pts int NOT NULL,
     ht_q5_pts int,
     at_q5_pts int,
-    ht_odds_start,
-    at_odds_start,
-    ht_odds_end,
-    at_odds_end,
+    ht_odds_start real,
+    at_odds_start real,
+    ht_odds_end real,
+    at_odds_end real,
 )
 
 CREATE TABLE players_info(
@@ -50,7 +50,7 @@ CREATE TABLE players_info(
 --all possible data stored in numeric format, null values should be trated as 0
 CREATE TABLE players_statistic(
     id SERIAL PRIMARY KEY,
-    id_match int REFERENCE matches(id),
+    id_match int REFERENCES matches(id),
     id_flashscore_match varchar(20) NOT NULL REFERENCES matches(id_flashscore_match),
     id_player int NOT NULL REFERENCES players_info(id),
     name_short varchar(20) NOT NULL, --short name from flashscore ex. Enoch S.
@@ -61,19 +61,18 @@ CREATE TABLE players_statistic(
     min int NOT NULL,--time on field in seconds
     fgm int NOT NULL,
     fga int NOT NULL,
-    2pm int NOT NULL,   
-    2pa int NOT NULL,
-    3pm int NOT NULL,   
-    3pa int NOT NULL,
+    pm2 int NOT NULL,   
+    pa2 int NOT NULL,
+    pm3 int NOT NULL,   
+    pa3 int NOT NULL,
     ftm int NOT NULL,
     fta int NOT NULL,
-    fta int NOT NULL,
     plus_minus int NOT NULL,
-    or int NOT NULL,
-    dr int NOT NULL,
+    ofrb int NOT NULL,
+    dfrb int NOT NULL,
     pf int NOT NULL,
     st int NOT NULL,
-    to int NOT NULL,
+    tovr int NOT NULL,
     bs int NOT NULL,
     ba int NOT NULL,
     tfs int NOT NULL,
