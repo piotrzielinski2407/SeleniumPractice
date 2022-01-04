@@ -1,5 +1,7 @@
 import os
 import datetime
+import pandas as pd
+import numpy as np
 
 def set_directory():
     scriptDir = os.path.dirname(__file__)
@@ -22,7 +24,10 @@ class DateHandler():
         self.month = self.date.month
         self.day = self.date.day
 
-
+def substract_list_content(origin_list, check_list):
+    origin_set = set(origin_list)
+    origin_set.difference(check_list)
+    return list(origin_set)
 
 if __name__ == '__main__':
     #some testing here  

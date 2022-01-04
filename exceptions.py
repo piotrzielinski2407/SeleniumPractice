@@ -5,3 +5,7 @@ class PageTimedOut(Exception):
 class WrongDateException(Exception):
     '''Exception raised when wrong date was provided by user'''
     pass
+
+class QuerryException(Exception):
+    '''Exception raised when error during sql querry occured'''
+    pass

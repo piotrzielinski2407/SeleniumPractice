@@ -17,21 +17,21 @@ Expected Input (optional):
     -no. of threads (default value set to optimal during tests)
 
 Basics:
-    1.  Check if choosen League name is in avaliable Leagues, if so, download hyperlink. If not return BadEntry Exception with information of avaliable Leagues 
-    2.  With hyperlink from above, scrap match list with internal flashscore id reference and hyperlinks, in selected data period. Write that data and compare if match with that
+    1.  Check if choosen League name is in avaliable Leagues, if so, download hyperlink. If not return BadEntry Exception with information of avaliable Leagues #do zrobienia filtracja BAD ENTRY
+    2.  With hyperlink from above, scrap match for exisitng ids. Write that data and compare if match with that
         flashscore id exist in DB, for further scraping use only that matches that not in DB.
-    3.  Create FIFO stack with hyperlinks (with locking due to multithreding), match full date (date+time) and flashscore_match_id
+    3A. Create FIFO stack with id's of matches (with locking due to multithreding)
+    3B. Add to cache_teams (with locking due to multithreding) existing teams as dict (team_full_name -> team_ticker) for selected league
+    3C. Add to cache_players (with locking due to multithreding) exisitng players as dict (player_name -> player_flashscore_id)
     4.  Each thread:
-            -popup match from stack and scrap data of:
-                a) teams that play in that match
-                b) match_statistic
-                c) player_statistic
-            -write data to pandas DF
-            -based on flashscore_player_id for each player check (after all threads finished) if that player exist in DB, if not add that player to FIFO stack with players to scrap (common to all threads)
-                if that player isn't already in that stack
+            -popup match id from stack and:
+                a) create match summary, player statistics, odds statistics links
+                b) with match summary scrap match data and if team is not in cache crap team data (for both teams) and add it to cache (with check if other thread already done that)
+                c) odds for match
+                d) scrap player statistics, for each player check if player id is in cache_players, of not scrap data and put it into cache (with check if other thread already done that)      
     5. Every scraping action should be loged
     6. Script rather should handle errors and skip some matches (with clear summary in log) and keep scraping.
-    7. At the end matches that cause error should be try once again.
+    7. At the end matches that cause error should be try once again (self-tend).
 
 Architecture:
 -DB_operations below is description of methods like they were function but this should be

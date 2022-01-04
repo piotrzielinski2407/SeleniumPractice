@@ -18,17 +18,12 @@ class DB():
         try:
             self.__conn = psycopg2.connect(database=config["db_name"], user=config["user"], password=config["password"], host=config["host"], port=config["port"])
             self.__cur = self.__conn.cursor()
+            self.__conn.autocommit = True
             logger_object.log('Connection with DB sucesfull', 'INFO')
         except Exception as e:
             logger_object.log(f'Exception occure during estabilishing connection with DB: {e}', 'ERROR')
         self.active_table = None
     
-    def __commit_after(method):
-        def wrapper(self, *args, **kwargs):
-            method(self, *args, **kwargs)
-            self.commit()
-        return wrapper
-
     def __execute_with_log(method):
         def wrapper(self, *args, **kwargs):
             try:
@@ -55,19 +50,23 @@ class DB():
 
     @__execute_with_log
     def execute(self, sql):
-        return self.__cur.execute(sql)   
+        result = self.__cur.execute(sql)   
+        return result
     
     @__execute_with_log
     def fetchone(self):
-        return self.__cur.fetchone()
+        result = self.__cur.fetchone()
+        return result
 
     @__execute_with_log
     def fetchmany(self, rows):
-        return self.__cur.fetchmany(rows)
+        result = [row[0] for row in self.__cur.fetchmany(rows)]
+        return result
 
     @__execute_with_log
     def fetchall(self):
-        return self.__cur.fetchall()
+        result = [row[0] for row in self.__cur.fetchall()]
+        return result
 
     @__execute_with_log
     def close_conn(self):
@@ -81,7 +80,6 @@ class DB():
     def close_cur(self):
         self.__cur.close()
 
-    @__commit_after
     def create_table(self, table_name, column_parameters = None):
         '''
         Method that will create table with columns in it only if column_parameters is provided, otherwise only empty table is created.
@@ -99,7 +97,6 @@ class DB():
         logger_object.log(f'Table with that name:"{table_name}" already exist or no table name provided', 'WARNING')
         return False
 
-    @__commit_after
     @__table_set
     def rename_table(self, new_table_name, table_name = None):
         '''
@@ -116,7 +113,6 @@ class DB():
         logger_object.log(f'Unable to changed name of {self.active_table} to {new_table_name}, {new_table_name} is already used ', 'ERROR')
         return False 
 
-    @__commit_after
     @__table_set     
     def drop_table(self, table_name = None):
         '''
@@ -142,7 +138,6 @@ class DB():
         '''
         return self.__column_operation('DROP', columns_names)
     
-    @__commit_after
     def __column_operation(self, opearation, columns_parameters):
         '''
         Universal method to operate on columns
@@ -173,6 +168,74 @@ class DB():
                 sql = sql + f' {param}'
             sql = sql + ','
         return sql[:len(sql) - 1] + ';'
+    
+    @__execute_with_log
+    @__table_set
+    def insert_data(self, data, table_name=None):
+        '''
+        Method to insert data into tables, when no table provided, active one is take into consideration
+        Only accept list* that in shape of table (no of columns should match)
+        *In future pandas dataframe and numpy series and arrays will be implemented
+        '''
+        column_names = self.__return_columns_name()[1:] 
+        if column_names is False:
+            return False
+
+        if isinstance(data,list):
+            sql = f"INSERT INTO {self.active_table} ({', '.join(column_names)}) VALUES"
+            for row in data:
+                sql_row = self.__insert_row(row, column_names)
+                if sql_row is not False:
+                    sql = sql + sql_row
+            sql=sql[:len(sql)-1] + ';'
+            logger_object.log(f'{sql}', 'DEBUG')
+            self.execute(sql)
+            return True
+        else:
+            logger_object.log('Data should be type of list', 'ERROR')
+            return False
+
+    def __insert_row(self, row, column_names):
+        '''
+        Inside method to put row into active table
+        '''
+        if isinstance(row, list):
+            if len(row) == len(column_names):
+                return "\n('" + "', '".join(row) + "'),"
+            else:
+                logger_object.log('Number of column in row diferent than in table', 'ERROR')
+                return False
+        else:
+            logger_object.log('row should be type of list', 'ERROR')
+            return False
+
+    @__execute_with_log
+    @__table_set
+    def return_data(self, table_name=None, columns_to_return=None):
+        if columns_to_return is not None:
+            sql = "SELECT ('" + "', ".join(columns_to_return) + "'),"
+        else:
+            sql = "SELECT * "
+        sql = sql + "\n  "
+
+    @__execute_with_log
+    def __how_many_columns(self):  
+        sql = f"SELECT COUNT (*) \
+                FROM information_schema.columns \
+                WHERE table_name = '{self.active_table}';"
+        self.execute(sql)
+        return self.fetchone()[0]
+
+    @__execute_with_log
+    def __return_columns_name(self):
+        '''
+        This is inside method and will always use active table
+        '''  
+        sql = f"SELECT column_name \
+                FROM information_schema.columns \
+                WHERE table_name = '{self.active_table}';"
+        self.execute(sql)
+        return self.fetchall()
 
     def is_table_exist(self, table_name=None):
         '''
@@ -183,7 +246,7 @@ class DB():
             if self.active_table is not None:
                 table_name = self.active_table
             else:
-                logger_object.log(f'Active table is not set, no table to check if exist' 'ERROR')
+                logger_object.log(f'Active table is not set, no table to check if exist', 'ERROR')
                 return False
         self.execute(f"SELECT EXISTS(SELECT relname FROM pg_class WHERE relname = '{table_name}');")
         result = self.fetchone()[0]
@@ -206,18 +269,18 @@ class DB():
 
 if __name__ == '__main__':
     #some testing here  
-    table_name2 = 'test48'
+    table_name2 = 'players_info'
     
 
-    column_parameters = [
-                        ['id', 'SERIAL', 'PRIMARY KEY'],
-                        ['column_2', 'varchar(10)', 'NOT NULL'],
-                        ['column_3', 'varchar(10)', 'NOT NULL']
+    data = [
+                        ['12hhe15', 'Zawodnik iksinski', '1993-02-15', '188', 'http:asdasd']
                         ]
 
     with DB() as db:
-        db.active_table = table_name2
-        db.create_table('test50',column_parameters)
+        
+        #db.active_table = table_name2
+        db.insert_data(data, table_name = table_name2)
+        pass
 
 
 
