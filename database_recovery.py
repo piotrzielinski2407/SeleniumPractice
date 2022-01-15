@@ -38,10 +38,10 @@ table3_cols=[
                 ['at_q4_pts', 'int', 'NOT NULL'],
                 ['ht_q5_pts', 'int'],
                 ['at_q5_pts', 'int'],
-                ['ht_odds_start', 'real'],
-                ['at_odds_start', 'real'],
-                ['ht_odds_end', 'real'],
-                ['at_odds_end', 'real']
+                ['ht_odds_start', 'varchar(100)'],
+                ['at_odds_start', 'varchar(100)'],
+                ['ht_odds_end', 'varchar(100)'],
+                ['at_odds_end', 'varchar(100)']
             ]
 
 table4_name = 'players_info'
