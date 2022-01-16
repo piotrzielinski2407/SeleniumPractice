@@ -58,8 +58,9 @@ table5_name = 'players_statistic'
 table5_cols=[
                 ['id', 'SERIAL PRIMARY KEY'],
                 ['id_match', 'int', 'REFERENCES matches(id)'],
-                ['id_flashscore_match', 'varchar(20)', 'NOT NULL REFERENCES matches(id_flashscore_match)'],
                 ['id_player', 'int', 'NOT NULL REFERENCES players_info(id)'],
+                ['id_flashscore_match', 'varchar(20)', 'NOT NULL REFERENCES matches(id_flashscore_match)'],
+                ['id_flashscore_player', 'varchar(20)', 'NOT NULL REFERENCES players_info(id_flashscore_player'],
                 ['name_short', 'varchar(20)', 'NOT NULL'],
                 ['team_ticker', 'varchar(5)', 'NOT NULL REFERENCES teams(team_ticker)'],
                 ['pts', 'int', 'NOT NULL'],
