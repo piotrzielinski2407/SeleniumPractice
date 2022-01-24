@@ -1,12 +1,10 @@
 from webpageprep import PreparePageSource
-from threading_lock import data_lock
 from hyperlinks_handler import MatchLinkCreator
 from logger import logger_object
 from settings import load_settings
 from datetime import datetime
 
 global_settings = load_settings()
-
 
 class MatchScrapper(PreparePageSource, MatchLinkCreator):
     date_time_div_name = 'duelParticipant__startTime'
@@ -49,6 +47,8 @@ class MatchScrapper(PreparePageSource, MatchLinkCreator):
             self.odds_summary_link = self.create_odds_summary_link()        
 
     def scrap_it(self):
+        self.match_summary_list = []
+        self.players_stats = []
         self.hyperlink = self.match_summary_link
         self.__page_content_ = self.page_content()
         if not self.__scrap_date_and_time():#if data and time scrapping was sucessful, check if date is in expected range

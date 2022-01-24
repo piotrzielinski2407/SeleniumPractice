@@ -8,6 +8,9 @@ def set_directory():
     os.chdir(scriptDir)
 
 class DateHandler():
+    '''
+    Class that will provide separate day, month, year based on provided argument
+    '''
     def __init__(self, date = None, *args, **kwargs):
         super().__init__(*args, **kwargs)
         if date:

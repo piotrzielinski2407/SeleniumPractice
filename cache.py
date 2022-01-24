@@ -7,6 +7,9 @@ from settings import load_settings
 class CacheHistory(DB, metaclass = Singleton):
     
     def __init__(self,  *args, **kwargs):
+        '''
+        Class to chache results from diferent threads, to optimize resources usage
+        '''
         super().__init__( *args, **kwargs)
         self.history = {}
         self.league = load_settings()['league_ticker']
