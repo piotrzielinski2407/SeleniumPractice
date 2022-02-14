@@ -13,17 +13,21 @@ class MatchScrapper(PreparePageSource, MatchLinkCreator):
                         'smh__part smh__home smh__part--3', 'smh__part smh__away smh__part--3',  'smh__part smh__home smh__part--4', 'smh__part smh__away smh__part--4', \
                         'smh__part smh__home smh__part--5', 'smh__part smh__away smh__part--5']
     odds_cell_selector = 'oddsCell__odd'
+    team_hyperlink_selector = 'participant__participantName participant__overflow'
     player_row_selector = 'ui-table__row playerStatsTable__row'
     player_hyperlink_selector = 'playerStatsTable__cell playerStatsTable__participantCell playerStatsTable__cell--clickable playerStatsTable__cell--shadow'
+    hyperlink_prefix = 'https://www.flashscore.com'
     player_name_selector = 'playerStatsTable__participantNameCell'
     player_team_ticker_selector = 'playerStatsTable__cell playerStatsTable__teamCell'
     player_points_selector = 'playerStatsTable__cell playerStatsTable__cell--sortingColumn'
     player_stats_selector = 'playerStatsTable__cell'
 
+
     def __init__(self,  *args, id = None, **kwargs):
         super().__init__(*args, **kwargs)
         self.match_summary_link = None
-        self.player_summary_link = None
+        self.player_home_team_summary_link = None
+        self.player_away_team_summary_link = None
         self.odds_summary_link = None
         self.id = id
         self.date_lower_limit = datetime.strptime(global_settings['start_date'],"%Y.%m.%d")
@@ -43,12 +47,16 @@ class MatchScrapper(PreparePageSource, MatchLinkCreator):
         if new_value is not None:
             self._id = new_value
             self.match_summary_link = self.create_match_summary_link()
-            self.player_summary_link = self.create_player_summary_link()
-            self.odds_summary_link = self.create_odds_summary_link()        
+            self.player_home_team_summary_link = self.create_player_summary_link_home_team()
+            self.player_away_team_summary_link = self.create_player_summary_link_away_team()
+            self.odds_summary_link = self.create_odds_summary_link()
+            self.team_ticker = None #prevent some data leakage
 
     def scrap_it(self):
         self.match_summary_list = []
         self.players_stats = []
+        self.home_team_ticker = None
+        self.away_team_ticker = None
         self.hyperlink = self.match_summary_link
         self.__page_content_ = self.page_content()
         if not self.__scrap_date_and_time():#if data and time scrapping was sucessful, check if date is in expected range
@@ -68,35 +76,58 @@ class MatchScrapper(PreparePageSource, MatchLinkCreator):
         self.__scrap_team_names()
         self.match_summary_list.append(self.hyperlink)
         self.__scrap_points()
+        self.__scrap_teams_id()
         #odds scrapping section start here
         self.hyperlink = self.odds_summary_link
         self.__page_content_ = self.page_content()
         self.__scrap_odds()
         #player statistic scrapping
-        self.hyperlink = self.player_summary_link
-        self.__page_content_ = self.page_content()
         self.__scrap_players_complete_info()
+        #team tickers added to match summary
+        self.match_summary_list.append(self.home_team_ticker)
+        self.match_summary_list.append(self.away_team_ticker)
+        #team id's added to match summary
+        self.match_summary_list.append(self.__home_team_id)
+        self.match_summary_list.append(self.__away_team_id)
 
     def __scrap_players_complete_info(self):
-        rows = self.__extract_all_classes(MatchScrapper.player_row_selector)
+        #home team players stats scrapping, code doubled purpously
+        self.hyperlink = self.player_home_team_summary_link
+        self.__page_content_ = self.page_content()
+        self.__scrap_team_players_stats(team_id = self.__home_team_id)
+        self.home_team_ticker = self.team_ticker
 
+        #away team players stats scrapping, code doubled purpously
+        self.hyperlink = self.player_away_team_summary_link
+        self.__page_content_ = self.page_content()
+        self.__scrap_team_players_stats(team_id = self.__away_team_id)
+        self.away_team_ticker = self.team_ticker
+
+    def __scrap_team_players_stats(self, team_id = None):
+        rows = self.__extract_all_classes(MatchScrapper.player_row_selector)
+        self.team_ticker = self.__scrap_player_team_ticker(rows[0])
         for row in rows:
             row_data = []
             row_data.append(self.id)
             row_data.append(self.__scrap_player_id(row))
+            row_data.append(team_id)
+            row_data.append(self.__scrap_player_link(row))
             row_data.append(self.__scrap_player_name(row))
-            row_data.append(self.__scrap_player_team_ticker(row))
+            row_data.append(self.team_ticker)
             row_data.append(self.__scrap_player_points(row))
             player_game_stats = self.__scrap_player_stats(row)
             row_data = row_data + player_game_stats
             
             self.players_stats.append(row_data)
-            
-        
+
     def __scrap_player_id(self, row):
+        href = self.__scrap_player_link(row)
+        return href[href[:-1].rfind('/')+1:-1]
+
+    def __scrap_player_link(self, row):
         href_raw = row.find('a', class_ =  MatchScrapper.player_hyperlink_selector)
         href = href_raw.get('href')
-        return href[href[:-1].rfind('/')+1:-1]
+        return MatchScrapper.hyperlink_prefix  + href
 
     def __scrap_player_name(self, row):
         name = self.__extract_text_from_selector('div', MatchScrapper.player_name_selector,page_content = row)
@@ -113,6 +144,15 @@ class MatchScrapper(PreparePageSource, MatchLinkCreator):
     def __scrap_player_stats(self, row):
         player_stats = self.__extract_text_from_all_selectors('div', MatchScrapper.player_stats_selector,  page_content = row)
         return player_stats
+
+    def __scrap_teams_id(self):
+        self.__home_team_id = None
+        self.__away_team_id = None
+        self.__home_team_id = self.__page_content_.find('div', class_ = MatchScrapper.team_div_names[0]).find(class_ = MatchScrapper.team_hyperlink_selector).get('href')
+        self.__away_team_id = self.__page_content_.find('div', class_ = MatchScrapper.team_div_names[1]).find(class_ = MatchScrapper.team_hyperlink_selector).get('href')
+        self.__home_team_id = self.__home_team_id[self.__home_team_id.rfind('/')+1:len(self.__home_team_id)]
+        self.__away_team_id = self.__away_team_id[self.__away_team_id.rfind('/')+1:len(self.__away_team_id)]
+
 
     def __scrap_odds(self):
         def divide_odd(odds_list):
@@ -225,7 +265,9 @@ class MatchScrapper(PreparePageSource, MatchLinkCreator):
         return results
 
 if __name__ == '__main__':
-    test = MatchScrapper(id = 'GhOXKjn8')
+    
+    test = MatchScrapper(id = '2qPFsyLt')
     test.scrap_it()
     print(test.match_summary_list)
-    print(test.players_stats)
+    
+    

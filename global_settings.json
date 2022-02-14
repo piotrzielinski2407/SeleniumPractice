@@ -2,6 +2,6 @@
 "webpage_load_treshold" : "3",
 "max_attempts_treshold" : "500",
 "league_ticker" : "ACB",
-"no_of_threads" : "15",
+"no_of_threads" : "10",
 "start_date" : "2020.10.11",
 "end_date" : "2020.11.11"}

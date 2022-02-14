@@ -15,7 +15,7 @@ class ExtractMatchIds(PreparePageSource):
         super().__init__(*args, **kwargs)
         self.__match_id = []
         self.hyperlink = None
-        self.hyperlinks = hyperlinks    
+        self.hyperlinks = hyperlinks
 
     @property
     def hyperlinks(self):

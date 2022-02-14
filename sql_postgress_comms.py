@@ -1,7 +1,8 @@
-import psycopg2
+import psycopg2, psycopg2.extras
 from settings import load_DB_config
 from logger import logger_object
 config = load_DB_config()
+import pandas as pd
 
 class DB():
     """
@@ -10,7 +11,7 @@ class DB():
     Many operation will double check if table exist to avoid situation that someone else or other part 
     of software change something in DB
     Any operation on slected table make it active one
-    Any intance fo this should be used with "with" statement to allow safe connecion close, otherwise, 
+    Any instance fo this should be used with "with" statement to allow safe connecion close, otherwise, 
     methods close_cur and close_conn should be called manually
     """
     def __init__(self, *args, **kwargs):
@@ -174,9 +175,10 @@ class DB():
     def insert_data(self, data, table_name=None):
         '''
         Method to insert data into tables, when no table provided, active one is take into consideration
-        Only accept list* that in shape of table (no of columns should match)
-        *In future pandas dataframe and numpy series and arrays will be implemented
+        Only accept list and pandas dataframe that in shape of table (no of columns should match)
+        
         '''
+        
         column_names = self.__return_columns_name()[1:] 
         if column_names is False:
             return False
@@ -191,9 +193,17 @@ class DB():
             logger_object.log(f'{sql}', 'DEBUG')
             self.execute(sql)
             return True
+        elif isinstance(data, pd.DataFrame):
+            logger_object.log('Enter DF saving section', 'DEBUG')
+            columns = ','.join(column_names)
+            values = "VALUES({})".format(",".join(["%s" for _ in column_names]))
+            insert_stmt = "INSERT INTO {} ({}) {}".format(self.active_table, columns, values)
+            psycopg2.extras.execute_batch(self.__cur, insert_stmt, data.values)
+            self.__conn.commit()
         else:
-            logger_object.log('Data should be type of list', 'ERROR')
+            logger_object.log('Data should be type of list or dataframe', 'ERROR')
             return False
+        
 
     def __insert_row(self, row, column_names):
         '''
@@ -211,12 +221,25 @@ class DB():
 
     @__execute_with_log
     @__table_set
-    def return_data(self, table_name=None, columns_to_return=None):
+    def return_data(self, table_name=None, columns_to_return=None,
+                     condition_column = None, condition_argument = None):
+
         if columns_to_return is not None:
-            sql = "SELECT ('" + "', ".join(columns_to_return) + "'),"
+            if isinstance(columns_to_return, list):
+                sql = "SELECT (" + ", ".join(columns_to_return) + ")"
+            else:
+                sql = f"SELECT {columns_to_return}"
         else:
             sql = "SELECT * "
         sql = sql + "\n  "
+        sql = sql + f"FROM {self.active_table}"
+        if condition_column is not None and condition_argument is not None:
+            sql = sql + "\n  "
+            sql = sql + f"WHERE {condition_column} = '{condition_argument}'"
+        sql = sql + ';'
+        logger_object.log(f'{sql}', 'DEBUG')
+        self.execute(sql)
+        return self.fetchall()
 
     @__execute_with_log
     def __how_many_columns(self):  

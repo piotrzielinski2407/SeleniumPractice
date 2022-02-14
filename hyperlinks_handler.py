@@ -2,22 +2,29 @@ from settings import load_settings
 from aditional_functions import DateHandler
 from logger import logger_object
 from exceptions import *
+from aditional_functions import substract_list_content
 from cache import cache_history
+
 
 class ArchiveLinkCreator(DateHandler):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.__global_stettings = load_settings()
-        #self.__league_ticker = self.__global_stettings['league_ticker']
-        #self.__class_settings = load_hyperlink_settings()
-        self.__hyperlink_prefix = self.__create_hyperlink_prefix()
-        self.__start_year = DateHandler(date = self.__global_stettings['start_date']).year
-        self.__end_year = DateHandler(date = self.__global_stettings['end_date']).year
-        self.__year_span = self.__year_span_calculation()
-        self.__hyperlinks = self.__create_hyperlinks()
+        self.__league_ticker = self.__global_stettings['league_ticker']
+        self.__hyperlink_prefix = cache_history.load_league_prefix()
+
+        if self.__hyperlink_prefix is not None:
+            self.__start_year = DateHandler(date = self.__global_stettings['start_date']).year
+            self.__end_year = DateHandler(date = self.__global_stettings['end_date']).year
+            self.__year_span = self.__year_span_calculation()
+            self.__hyperlinks = self.__create_hyperlinks()
+        else:
+            logger_object.log('No links created, prefix missing', 'ERROR')
+            self.__hyperlinks = None
 
     def return_hyperlinks(self):
         return self.__hyperlinks
+
 
     def __create_hyperlinks(self):
         year1 =  self.__start_year - 1
@@ -28,9 +35,7 @@ class ArchiveLinkCreator(DateHandler):
             year1+=1
             year2+=1
         return hyperlinks
-    def __create_hyperlink_prefix(self):
-        prefix_from_cache = cache_history.history[self.__global_stettings['league_ticker'] + '_hyperlink']
-        return prefix_from_cache[:len(prefix_from_cache)-1] + '-'
+
     def __year_span_calculation(self):
         year_span = self.__end_year - self.__start_year
         if year_span < 0:
@@ -57,10 +62,22 @@ class MatchLinkCreator():
         logger_object.log(f'{len(result)} match summary link created', 'INFO')
         return result
 
-    def create_player_summary_link(self):
+    def create_player_summary_link(self):#outdated, unused function
         suffix = '/#match-summary/player-statistics/0'
         result = self.__link_joiner(suffix)
         logger_object.log(f'{len(result)} players statistic link created', 'INFO')
+        return result
+
+    def create_player_summary_link_home_team(self):
+        suffix = '/#match-summary/player-statistics/1'
+        result = self.__link_joiner(suffix)
+        logger_object.log(f'{len(result)} players statistic from home team link created', 'INFO')
+        return result
+
+    def create_player_summary_link_away_team(self):
+        suffix = '/#match-summary/player-statistics/2'
+        result = self.__link_joiner(suffix)
+        logger_object.log(f'{len(result)} players statistic from away team link created', 'INFO')
         return result
 
     def create_odds_summary_link(self):
@@ -76,13 +93,21 @@ class MatchLinkCreator():
             return link
         logger_object.log('Id not set unable to create hyperlink', 'ERROR')
 
-    
-
+def players_links_to_scrap(df_players_stats):
+    df_players_stats_trimmed = df_players_stats.drop_duplicates(subset = 'id_flashscore_player', inplace=False)[['id_flashscore_player', 'player_hyperlink']]
+    players_id_in_DB = cache_history.load_player_ids()
+    scrapped_players_ids = df_players_stats_trimmed['id_flashscore_player'].tolist()
+    if len(players_id_in_DB) != 0:
+        players_id_to_scrap = substract_list_content(scrapped_players_ids,players_id_in_DB)
+    else:
+        players_id_to_scrap = scrapped_players_ids
+    hyperlinks = df_players_stats_trimmed[df_players_stats_trimmed['id_flashscore_player'].isin(players_id_to_scrap)]['player_hyperlink'].tolist()
+    return hyperlinks
 
 if __name__ == '__main__':
     #some testing here  
     settings = load_settings()
 
-    cache_history.team_ticker_load(settings['league_ticker'])
+    
     test = ArchiveLinkCreator()
     print(test.return_hyperlinks())

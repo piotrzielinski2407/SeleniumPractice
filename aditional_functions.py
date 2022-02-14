@@ -1,7 +1,5 @@
 import os
 import datetime
-import pandas as pd
-import numpy as np
 
 def set_directory():
     scriptDir = os.path.dirname(__file__)
@@ -11,8 +9,10 @@ class DateHandler():
     '''
     Class that will provide separate day, month, year based on provided argument
     '''
-    def __init__(self, date = None, *args, **kwargs):
+    def __init__(self, date = None, date_format = "%Y.%m.%d", *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.date_format = date_format
+        self.date_default_format = "%Y.%m.%d"
         if date:
             self.set_date(date)
         else:
@@ -22,19 +22,27 @@ class DateHandler():
             self.day = None
 
     def set_date(self, new_value):
-        self.date = datetime.datetime.strptime(new_value, "%Y.%m.%d")
+        self.date = datetime.datetime.strptime(new_value, self.date_format)
         self.year = self.date.year
         self.month = self.date.month
         self.day = self.date.day
 
+    def return_date(self):
+        '''
+        Function that will return date in default date format 
+        '''
+        return self.date.strftime(format = self.date_default_format)
+
+
 def substract_list_content(origin_list, check_list):
     origin_set = set(origin_list)
-    origin_set.difference(check_list)
-    return list(origin_set)
+    temp_set = origin_set.difference(check_list)
+    return list(temp_set)
 
 if __name__ == '__main__':
     #some testing here  
+    lista1 = ['A', 'B', 'C', 'D']
 
-    test = DateHandler(date = "2018.10.11")
-    #test.set_date("2018.10.11")
-    print(test.year)
+    lista2 = ['C', 'D']
+
+    print(substract_list_content(lista1, lista2))
